@@ -1,3 +1,8 @@
+# import gzip
+# import requests
+# import sqlalchemy
+# import matplotlib
+# (XML LIBRARY)
 
 ### SETUP
 
@@ -17,6 +22,12 @@
 ### MANIPULATE
 
 # read data and manipulate it like requested
+
+# Präsentation der Umsetzung (Wenn alles fertig ist)
+
+### EXTRA
+# Visualisierung der Daten (Matplotlib?)
+# XML Export(Später)
 
 def main():
     pass
