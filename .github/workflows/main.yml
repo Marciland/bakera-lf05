@@ -1,5 +1,7 @@
 name: generate plantuml
-on: push
+on: 
+  workflow_dispatch: null
+  push: null
 jobs:
   generate_plantuml:
     runs-on: ubuntu-latest
