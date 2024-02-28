@@ -1,0 +1,42 @@
+@startuml ER-Modell
+
+hide circle
+skinparam Linetype ortho
+
+entity Sensor {
+    *uuid: uuid
+    --
+    sensor_id: numeric
+    type: text
+    lat: numeric
+    lot: numeric
+    location: numeric
+}
+
+entity ParticulateMatterData {
+    *id: serial <auto gen>
+    *sensor_uuid: uuid (foreign key),
+    --
+    timestap : timestamp 
+    P1: numeric
+    durP1: numeric
+    ratioP1: numeric
+    P2: numeric
+    durP2: numeric
+    ratioP2: numeric
+}
+
+entity WeatherData {
+    *id: serial <auto gen>
+    *sensor_uuid: uuid (foreign key),
+    --
+    timestamp: timestamp
+    temperature: numeric
+    humidity: numeric
+}
+
+'jeder sensor kann mehere daten haben, alle daten stammen aber nur von einem Sensor
+Sensor ||-o{ParticulateMatterData
+Sensor ||-o{WeatherData
+
+@enduml
