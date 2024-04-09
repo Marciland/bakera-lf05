@@ -1,11 +1,12 @@
 '''entrypoint for the API'''
 import os
+import re
 
 import uvicorn
 from fastapi import FastAPI
 
-from setup import (download_all_files, extract_all_files, insert_data_into_db,
-                   read_file_formatted, connect_to_db, create_sensor_info)
+from setup import (connect_to_db, create_sensor_info, download_all_files,
+                   extract_all_files, insert_data_into_db, read_file_formatted)
 
 
 def main() -> FastAPI:
@@ -44,7 +45,7 @@ def main() -> FastAPI:
             for sensor_type, sensor_id in sensor_types.items():
                 for path in all_files:
                     # find any file that correlates to the sensor
-                    if sensor_type in path and sensor_id in path:
+                    if sensor_type in path and re.search(fr'\_{sensor_id}\.', path):
                         # sensor info is needed for location/lat/lon
                         sensor_info = read_file_formatted(path)
                         break
@@ -55,7 +56,7 @@ def main() -> FastAPI:
                 # read content from the file at path
                 lines = read_file_formatted(path)
                 # insert read data into the database
-                insert_data_into_db(connection, lines)
+                insert_data_into_db(connection, lines, list(sensor_types))
         finally:
             connection.close()
 
