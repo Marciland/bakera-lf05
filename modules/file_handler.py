@@ -3,13 +3,6 @@ import gzip
 import os
 
 
-def extract_all_files(file_paths: list[str]) -> list[str]:
-    '''
-    Extracts given files and returns the location of the extracted files.
-    '''
-    return [extract_file(path) for path in file_paths]
-
-
 def extract_file(file_path: str) -> str:
     '''
     Extracts a single file and removes the archive.
