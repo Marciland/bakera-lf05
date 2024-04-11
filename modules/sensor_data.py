@@ -5,6 +5,8 @@ from fastapi import HTTPException, status
 from psycopg import Connection, Cursor
 from pydantic import BaseModel
 
+from modules.data_models import Date
+
 
 class SensorInfo(BaseModel):
     '''
@@ -63,10 +65,99 @@ class Dht22Data(BaseModel):
                 str(self.sensor_info.id), str(self.sensor_info.type),)
 
 
-def filter_sensor_data(sensor_data, date):
+def filter_sensor_data(sensor_data: list, date: Date) -> dict:
     '''
-    Returns only entrys based on filter.
+    Returns only entries based on filter.
     '''
+    if date.day:
+        return filter_day(sensor_data, date)
+    if date.month:
+        return filter_month(sensor_data, date)
+    return filter_year(sensor_data, date)
+
+
+def filter_day(sensor_data: list, date: Date) -> dict:
+    '''
+    Returns all entries matching day/month/year.
+    '''
+    filtered_data = {}
+    for entry in sensor_data:
+        timestamp = entry[1]
+        if timestamp.day != date.day:
+            continue
+        if timestamp.month != date.month:
+            continue
+        if timestamp.year != date.year:
+            continue
+        filtered_data.update({entry[0]: format_entry(entry)})
+    return filtered_data
+
+
+def filter_month(sensor_data: list, date: Date) -> dict:
+    '''
+    Returns all entries matching month/year.
+    '''
+    filtered_data = {}
+    for entry in sensor_data:
+        timestamp = entry[1]
+        if timestamp.month != date.month:
+            continue
+        if timestamp.year != date.year:
+            continue
+        filtered_data.update({entry[0]: format_entry(entry)})
+    return filtered_data
+
+
+def filter_year(sensor_data: list, date: Date) -> dict:
+    '''
+    Returns all entries matching year.
+    '''
+    filtered_data = {}
+    for entry in sensor_data:
+        timestamp = entry[1]
+        if timestamp.year != date.year:
+            continue
+        filtered_data.update({entry[0]: format_entry(entry)})
+    return filtered_data
+
+
+def format_entry(entry: list) -> dict:
+    '''
+    Beautifies the database entry.
+    sds011 has an entry length of 10.
+    dht22 has an entry length of 6.
+    '''
+    if len(entry) == 10:
+        return format_sds011(entry)
+    if len(entry) == 6:
+        return format_dht22(entry)
+    raise NotImplementedError()
+
+
+def format_sds011(entry: list) -> dict:
+    '''
+    Beatify database entry.
+    '''
+    return {
+        'timestamp': entry[1],
+        'P1': entry[2],
+        'durP1': entry[3],
+        'ratioP1': entry[4],
+        'P2': entry[5],
+        'durP2': entry[6],
+        'ratioP2': entry[7]
+    }
+
+
+def format_dht22(entry: list) -> dict:
+    '''
+    Beatify database entry.
+    '''
+    return {
+        'timestamp': entry[1],
+        'temperature': entry[2],
+        'humidity': entry[3]
+    }
 
 
 def get_sensor_function(sensor_type: str) -> Callable:

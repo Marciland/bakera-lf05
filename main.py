@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import JSONResponse
 
 from modules.data_models import Date
 from modules.database_handler import connect_to_db, fetch_data
@@ -80,6 +81,9 @@ def main() -> FastAPI:
         con = connect_to_db(config)
         try:
             sensor_data = fetch_data(con, query)
+            if not sensor_data:
+                return JSONResponse(content='Keine Daten gefunden!',
+                                    status_code=status.HTTP_404_NOT_FOUND)
             return filter_sensor_data(sensor_data, date)
         finally:
             con.close()
