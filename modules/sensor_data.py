@@ -30,8 +30,10 @@ class Sds011Data(BaseModel):
     sensor_info: SensorInfo
     insert_query: str = 'insert into "ParticulateMatterData" ' \
         '("timestamp", "P1", "durP1", "ratioP1", ' \
-        '"P2", "durP2", "ratioP2", "sensor_id", "sensor_type") '\
-        'values (%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+        '"P2", "durP2", "ratioP2", "sensor_id", "sensor_type") ' \
+        'select %s,%s,%s,%s,%s,%s,%s,%s,%s ' \
+        'where not exists ( select * from "ParticulateMatterData" ' \
+        'where timestamp = %s and sensor_id = %s and sensor_type = %s)'
 
     def get_insert_data(self) -> tuple:
         '''
@@ -40,7 +42,8 @@ class Sds011Data(BaseModel):
         return (str(self.timestamp),
                 str(self.p1), str(self.dur_p1), str(self.ratio_p1),
                 str(self.p2), str(self.dur_p2), str(self.ratio_p2),
-                str(self.sensor_info.id), str(self.sensor_info.type),)
+                str(self.sensor_info.id), str(self.sensor_info.type),
+                (self.timestamp), str(self.sensor_info.id), str(self.sensor_info.type),)
 
 
 class Dht22Data(BaseModel):
@@ -53,8 +56,10 @@ class Dht22Data(BaseModel):
     sensor_info: SensorInfo
     insert_query: str = 'insert into "WeatherData" ' \
         '("timestamp", "temperature", "humidity", ' \
-        '"sensor_id", "sensor_type") '\
-        'values (%s,%s,%s,%s,%s)'
+        '"sensor_id", "sensor_type") ' \
+        'select %s,%s,%s,%s,%s ' \
+        'where not exists (select * from "WeatherData" ' \
+        'where timestamp = %s and sensor_id = %s and sensor_type = %s)'
 
     def get_insert_data(self) -> tuple:
         '''
@@ -62,7 +67,8 @@ class Dht22Data(BaseModel):
         '''
         return (str(self.timestamp),
                 str(self.temperature), str(self.humidity),
-                str(self.sensor_info.id), str(self.sensor_info.type),)
+                str(self.sensor_info.id), str(self.sensor_info.type),
+                str(self.timestamp), str(self.sensor_info.id), str(self.sensor_info.type),)
 
 
 def filter_sensor_data(sensor_data: list, date: Date) -> dict:
