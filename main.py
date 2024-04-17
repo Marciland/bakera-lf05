@@ -43,6 +43,10 @@ def main() -> FastAPI:
               'userDB': 'admin',
               'passwordDB': 'password'}
 
+    filter_map = {0: 'min',
+                  1: 'avg',
+                  2: 'max'}
+
     download_path = os.path.join(os.getcwd(), 'downloaded_files')
     os.makedirs(download_path, exist_ok=True)
 
@@ -61,6 +65,7 @@ def main() -> FastAPI:
                     file_paths.append(new_path)
                 content = read_file_formatted(new_path if new_path else path)
                 insert_function(con, content)
+                return 'Erfolgreich hinzugefügt!'
         finally:
             for path in file_paths:
                 os.remove(path)
@@ -92,6 +97,26 @@ def main() -> FastAPI:
     def testing_database():
         connection = connect_to_db(config)
         connection.close()
+
+    @api.get('/filter_temperature')
+    def get_temperature(date: Date = Depends(),
+                        sensor_info: SensorInfo = Depends(),
+                        query_filter: int = 0):
+        if sensor_info.type != 'dht22':
+            raise HTTPException(detail='Aktuell wird nur dht22 unterstützt!',
+                                status_code=status.HTTP_400_BAD_REQUEST)
+        if query_filter not in filter_map:
+            raise HTTPException(detail='0 = min, 1 = avg, 2 = max',
+                                status_code=status.HTTP_400_BAD_REQUEST)
+        connection = connect_to_db(config)
+        try:
+            statement = f'select {filter_map[query_filter]}(temperature) from "WeatherData" ' \
+                        f'where sensor_type = \'{sensor_info.type}\' '\
+                        f'and sensor_id = \'{sensor_info.id}\' ' \
+                        f'and date(timestamp) = \'{date.year}-{date.month}-{date.day}\''
+            return round(fetch_data(connection, statement)[0][0], 2)
+        finally:
+            connection.close()
 
     return api
 
