@@ -51,7 +51,7 @@ def main() -> FastAPI:
     os.makedirs(download_path, exist_ok=True)
 
     @api.post('/insert_data', status_code=status.HTTP_201_CREATED)
-    def insert_data(date: Date = Date(year=2022, month=1, day=1),
+    def insert_data(date: Date = Date(),
                     sensor_info: SensorInfo = SensorInfo(type='sds011', id=3659)):
         insert_function = get_sensor_function(sensor_info.type)
         file_paths = download_data(download_path, date, sensor_info)
@@ -98,23 +98,35 @@ def main() -> FastAPI:
         connection = connect_to_db(config)
         connection.close()
 
-    @api.get('/filter_temperature')
-    def get_temperature(date: Date = Depends(),
-                        sensor_info: SensorInfo = Depends(),
-                        query_filter: int = 0):
-        if sensor_info.type != 'dht22':
-            raise HTTPException(detail='Aktuell wird nur dht22 unterstützt!',
-                                status_code=status.HTTP_400_BAD_REQUEST)
+    @api.get('/filter_data')
+    def get_filtered_data(date: Date = Depends(),
+                          sensor_info: SensorInfo = Depends(),
+                          query_filter: int = 0,
+                          p: str = 'P1'):
         if query_filter not in filter_map:
             raise HTTPException(detail='0 = min, 1 = avg, 2 = max',
                                 status_code=status.HTTP_400_BAD_REQUEST)
+        match sensor_info.type:
+            case 'dht22':
+                p = 'temperature'
+                statement = f'select {filter_map[query_filter]}({p}) from "WeatherData" ' \
+                    f'where sensor_type = \'{sensor_info.type}\' '\
+                    f'and sensor_id = \'{sensor_info.id}\' ' \
+                    f'and date(timestamp) = \'{date.year}-{date.month}-{date.day}\''
+            case 'sds011':
+                statement = f'select {filter_map[query_filter]}("{p}") from "ParticulateMatterData" ' \
+                    f'where sensor_type = \'{sensor_info.type}\' '\
+                    f'and sensor_id = \'{sensor_info.id}\' ' \
+                    f'and date(timestamp) = \'{date.year}-{date.month}-{date.day}\''
+            case _:
+                raise HTTPException(detail='Aktuell werden nur dht22 und sds011 unterstützt!',
+                                    status_code=status.HTTP_400_BAD_REQUEST)
         connection = connect_to_db(config)
         try:
-            statement = f'select {filter_map[query_filter]}(temperature) from "WeatherData" ' \
-                        f'where sensor_type = \'{sensor_info.type}\' '\
-                        f'and sensor_id = \'{sensor_info.id}\' ' \
-                        f'and date(timestamp) = \'{date.year}-{date.month}-{date.day}\''
             return round(fetch_data(connection, statement)[0][0], 2)
+        except TypeError as ex:
+            raise HTTPException(detail='Keine Daten für den Tag verfügbar!',
+                                status_code=status.HTTP_404_NOT_FOUND) from ex
         finally:
             connection.close()
 
