@@ -21,7 +21,7 @@ def get_arguments():
         Returns:
             args: given arguments
     '''
-    parser = ArgumentParser(description='marciland.net API')
+    parser = ArgumentParser(description='Feinstaub API. Read data from Luftdaten.')
     parser.add_argument('-d', '--develop', action='store_true', default=False,
                         dest='develop', required=False,
                         help='Toggle for localhost database.')
