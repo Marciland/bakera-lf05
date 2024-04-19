@@ -31,11 +31,15 @@ Some of us decided against Docker Desktop due to company policies.
 
 ## How to run
 
-> optionally: a network will allow us to reach the database using its container name instead of an IP
+For convenience reasons I created scripts to take care of the setup. Run either wsl_docker or docker setup script to skip all steps below.
+
+#
+
+> A network will allow us to reach the database using its container name instead of an IP!
 
 `docker network create NETWORK`
 
-Create a volume for postgres to persist the data inside our database (e.g. tables)!
+> Create a volume for postgres to persist the data inside our database (e.g. tables)!
 
 `docker volume create VOLUMENAME`
 
