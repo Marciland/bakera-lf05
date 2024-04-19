@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 
+import database.statements as sql
 from modules.data_models import Date
 from modules.database_handler import connect_to_db, fetch_data
 from modules.downloader import download_data
@@ -75,14 +76,13 @@ def main() -> FastAPI:
     def read_data(date: Date = Depends(), sensor_info: SensorInfo = Depends()):
         match sensor_info.type:
             case 'sds011':
-                query = 'select * from "ParticulateMatterData" where ' \
-                    f'sensor_id = \'{sensor_info.id}\' and sensor_type = \'{sensor_info.type}\''
+                query = sql.SDS011_READ
             case 'dht22':
-                query = 'select * from "WeatherData" where ' \
-                    f'sensor_id = \'{sensor_info.id}\' and sensor_type = \'{sensor_info.type}\''
+                query = sql.DHT22_READ
             case _:
                 raise HTTPException(detail=f'Unknown sensor type: {sensor_info.type}',
                                     status_code=status.HTTP_400_BAD_REQUEST)
+        query = query % (sensor_info.id, sensor_info.type)
         con = connect_to_db(config)
         try:
             sensor_data = fetch_data(con, query)
@@ -109,21 +109,17 @@ def main() -> FastAPI:
         match sensor_info.type:
             case 'dht22':
                 p = 'temperature'
-                statement = f'select {filter_map[query_filter]}({p}) from "WeatherData" ' \
-                    f'where sensor_type = \'{sensor_info.type}\' '\
-                    f'and sensor_id = \'{sensor_info.id}\' ' \
-                    f'and date(timestamp) = \'{date.year}-{date.month}-{date.day}\''
+                query = sql.DHT22_READ_FILTERED
             case 'sds011':
-                statement = f'select {filter_map[query_filter]}("{p}") from "ParticulateMatterData" ' \
-                    f'where sensor_type = \'{sensor_info.type}\' '\
-                    f'and sensor_id = \'{sensor_info.id}\' ' \
-                    f'and date(timestamp) = \'{date.year}-{date.month}-{date.day}\''
+                query = sql.SDS011_READ_FILTERED
             case _:
                 raise HTTPException(detail='Aktuell werden nur dht22 und sds011 unterstützt!',
                                     status_code=status.HTTP_400_BAD_REQUEST)
+        query = query % (filter_map[query_filter], p, sensor_info.type,
+                         sensor_info.id, date.year, date.month, date.day)
         connection = connect_to_db(config)
         try:
-            return round(fetch_data(connection, statement)[0][0], 2)
+            return round(fetch_data(connection, query)[0][0], 2)
         except TypeError as ex:
             raise HTTPException(detail='Keine Daten für den Tag verfügbar!',
                                 status_code=status.HTTP_404_NOT_FOUND) from ex

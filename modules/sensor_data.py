@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from psycopg import Connection, Cursor
 from pydantic import BaseModel
 
+import database.statements as sql
 from modules.data_models import Date
 
 
@@ -28,12 +29,7 @@ class Sds011Data(BaseModel):
     dur_p2: str | int
     ratio_p2: str | int
     sensor_info: SensorInfo
-    insert_query: str = 'insert into "ParticulateMatterData" ' \
-        '("timestamp", "P1", "durP1", "ratioP1", ' \
-        '"P2", "durP2", "ratioP2", "sensor_id", "sensor_type") ' \
-        'select %s,%s,%s,%s,%s,%s,%s,%s,%s ' \
-        'where not exists ( select * from "ParticulateMatterData" ' \
-        'where timestamp = %s and sensor_id = %s and sensor_type = %s)'
+    insert_query: str = sql.SDS011_WRITE
 
     def get_insert_data(self) -> tuple:
         '''
@@ -54,12 +50,7 @@ class Dht22Data(BaseModel):
     temperature: str | int
     humidity: str | int
     sensor_info: SensorInfo
-    insert_query: str = 'insert into "WeatherData" ' \
-        '("timestamp", "temperature", "humidity", ' \
-        '"sensor_id", "sensor_type") ' \
-        'select %s,%s,%s,%s,%s ' \
-        'where not exists (select * from "WeatherData" ' \
-        'where timestamp = %s and sensor_id = %s and sensor_type = %s)'
+    insert_query: str = sql.DHT22_WRITE
 
     def get_insert_data(self) -> tuple:
         '''
