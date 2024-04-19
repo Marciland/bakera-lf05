@@ -2,7 +2,7 @@
 from typing import Callable
 
 from fastapi import HTTPException, status
-from psycopg import Connection, Cursor
+from psycopg import Connection
 from pydantic import BaseModel
 
 import database.statements as sql
@@ -176,7 +176,6 @@ def add_sds011_data(con: Connection, file_data: list[list[str]]) -> None:
     '''
     Inserts into ParticulateMatterData due to sensor type being sds011.
     '''
-    cur = con.cursor()
     for line in file_data:
         data = Sds011Data(timestamp=line[5],
                           p1=line[6] if line[6] else 0,
@@ -188,27 +187,26 @@ def add_sds011_data(con: Connection, file_data: list[list[str]]) -> None:
                           sensor_info=SensorInfo(id=line[0],
                                                  type=line[1].lower())
                           )
-        insert_sensor_data(cur, data)
-    cur.close()
+        insert_sensor_data(con, data)
 
 
 def add_dht22_data(con: Connection, file_data: list[list[str]]) -> None:
     '''
     Inserts into WeatherData due to sensor type being dht22.
     '''
-    cur = con.cursor()
     for line in file_data:
         data = Dht22Data(timestamp=line[5],
                          temperature=line[6] if line[6] else 0,
                          humidity=line[7] if line[7] else 0,
                          sensor_info=SensorInfo(id=line[0],
                                                 type=line[1].lower()))
-        insert_sensor_data(cur, data)
-    cur.close()
+        insert_sensor_data(con, data)
 
 
-def insert_sensor_data(cur: Cursor, data: BaseModel) -> None:
+def insert_sensor_data(con: Connection, data: BaseModel) -> None:
     '''
     Generic data insertion for any sensor model.
     '''
+    cur = con.cursor()
     cur.execute(data.insert_query, data.get_insert_data())
+    cur.close()
